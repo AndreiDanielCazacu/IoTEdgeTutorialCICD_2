@@ -1,0 +1,57 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- main
+
+stages:
+- stage: Build
+  jobs:
+  - job: J1
+    pool:
+     vmImage: ubuntu-22.04
+    steps:
+    - script: |
+        cd ./modules/$(MODULE_NAME)
+        dotnet publish --os linux --arch x64 /t:PublishContainer
+      displayName: 'Build Docker Image'
+    - script: |
+        docker login -u $(USERNAME) -p $(PASSWORD) $(ADRESS)
+        docker tag $(MODULE_NAME) $(ADRESS)/$(MODULE_NAME):$(VERSION)
+        docker push $(ADRESS)/$(MODULE_NAME):$(VERSION)
+      displayName: 'Push Docker Image'
+
+- stage: Release
+  jobs:
+  - job: J2
+    pool:
+     vmImage: ubuntu-22.04
+    steps: 
+      - script: |
+          sudo apt install software-properties-common
+          sudo add-apt-repository ppa:deadsnakes/ppa
+          sudo apt install python3.9
+          sudo apt install python3.9-distutils
+          curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
+          python3.9 get-pip.py
+          python3.9 -m pip install -U iotedgedev pyOpenSSL==22.0.0 urllib3==1.22 requests
+        displayName: 'Command Line Script'
+      - task: AzureIoTEdge@2
+        inputs:
+          action: 'Generate deployment manifest'
+          templateFilePath: 'deployment.template.json'
+          defaultPlatform: 'amd64'
+          deploymentManifestOutputPath: '$(System.DefaultWorkingDirectory)/config/deployment.json'
+          validateGeneratedDeploymentManifest: 'false'
+      - task: AzureIoTEdge@2
+        inputs:
+          action: 'Deploy to IoT Edge devices'
+          deploymentFilePath: '$(System.DefaultWorkingDirectory)/config/deployment.json'
+          azureSubscription: 'Azure for Students(bcab88ea-cdf3-4f4d-9ab1-99d5fd6c6793)'
+          iothubname: 'myIoTHubTutorialAndrei'
+          deploymentid: '$(System.TeamProject)-devops-deployment'
+          priority: '0'
+          deviceOption: 'Single Device'
+          deviceId: 'edgedeviceidentityadc1'
