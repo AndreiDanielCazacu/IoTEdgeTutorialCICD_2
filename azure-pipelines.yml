@@ -18,9 +18,9 @@ stages:
         dotnet publish --os linux --arch x64 /t:PublishContainer
       displayName: 'Build Docker Image'
     - script: |
-        docker login -u $(USERNAME) -p $(PASSWORD) $(ADRESS)
-        docker tag $(MODULE_NAME) $(ADRESS)/$(MODULE_NAME):$(VERSION)
-        docker push $(ADRESS)/$(MODULE_NAME):$(VERSION)
+        docker login -u $(CONTAINER_REGISTRY_USERNAME) -p $(CONTAINER_REGISTRY_PASSWORD) $(CONTAINER_REGISTRY_ADDRESS)
+        docker tag $(MODULE_NAME) $(CONTAINER_REGISTRY_ADRESS)/$(MODULE_NAME):$(MODULE_VERSION)
+        docker push $(CONTAINER_REGISTRY_ADDRESS)/$(MODULE_NAME):$(MODULE_VERSION)
       displayName: 'Push Docker Image'
 
 - stage: Release
